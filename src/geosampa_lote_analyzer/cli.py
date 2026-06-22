@@ -7,6 +7,7 @@ from rich.console import Console
 from geosampa_lote_analyzer.domain.constants import PROCESSED_DIR
 from geosampa_lote_analyzer.domain.keywords import DEFAULT_LAYER_KEYWORDS
 from geosampa_lote_analyzer.logging_config import configure_logging
+from geosampa_lote_analyzer.services.document_reference_service import DocumentReferenceService
 from geosampa_lote_analyzer.services.intersection_service import IntersectionService
 from geosampa_lote_analyzer.services.layer_discovery_service import LayerDiscoveryService
 from geosampa_lote_analyzer.services.lote_service import LoteService
@@ -69,6 +70,20 @@ def discover_sources(
         rows_per_keyword=rows_per_keyword,
     )
     console.print(f"Fontes inventariadas: {len(sources)}")
+    console.print(f"Inventário CSV: {csv_path}")
+    console.print(f"Inventário JSON: {json_path}")
+
+
+@app.command("document-references")
+def document_references(
+    intersections: Annotated[Path, typer.Option()] = INTERSECTIONS_GEOJSON_PATH,
+    target_properties: Annotated[Path | None, typer.Option()] = None,
+) -> None:
+    references, csv_path, json_path = DocumentReferenceService().generate(
+        intersections_path=intersections,
+        target_properties_path=target_properties,
+    )
+    console.print(f"Referências documentais: {len(references)}")
     console.print(f"Inventário CSV: {csv_path}")
     console.print(f"Inventário JSON: {json_path}")
 
