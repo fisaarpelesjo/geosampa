@@ -5,7 +5,7 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
-from geosampa_lote_analyzer.domain.constants import PROCESSED_DIR
+from geosampa_lote_analyzer.domain.constants import ATTACHMENTS_DIR, PROCESSED_DIR
 from geosampa_lote_analyzer.domain.keywords import DEFAULT_LAYER_KEYWORDS
 from geosampa_lote_analyzer.logging_config import configure_logging
 from geosampa_lote_analyzer.services.cadastral_divergence_service import (
@@ -13,6 +13,9 @@ from geosampa_lote_analyzer.services.cadastral_divergence_service import (
 )
 from geosampa_lote_analyzer.services.document_reference_service import DocumentReferenceService
 from geosampa_lote_analyzer.services.dossier_service import DossierService
+from geosampa_lote_analyzer.services.drawing_association_service import (
+    DrawingAssociationService,
+)
 from geosampa_lote_analyzer.services.intersection_service import IntersectionService
 from geosampa_lote_analyzer.services.layer_discovery_service import LayerDiscoveryService
 from geosampa_lote_analyzer.services.legal_validation_service import LegalValidationService
@@ -151,6 +154,25 @@ def legal_validation(
     console.print(f"Tarefas de validação legal: {len(rows)}")
     console.print(f"Tarefas CSV: {csv_path}")
     console.print(f"Tarefas JSON: {json_path}")
+
+
+@app.command("plantas-croquis")
+def plantas_croquis(
+    document_references_path: Annotated[
+        Path, typer.Option()
+    ] = PROCESSED_DIR / "document_references.csv",
+    attachments_dir: Annotated[Path, typer.Option()] = ATTACHMENTS_DIR,
+) -> None:
+    requests, csv_path, json_path = DrawingAssociationService().generate(
+        document_references_path=document_references_path,
+        attachments_dir=attachments_dir,
+    )
+    found = sum(request.status == "ANEXO_LOCAL_ENCONTRADO" for request in requests)
+    console.print(f"Plantas/croquis referenciados: {len(requests)}")
+    console.print(f"Anexos locais encontrados: {found}")
+    console.print(f"A solicitar: {len(requests) - found}")
+    console.print(f"Lista CSV: {csv_path}")
+    console.print(f"Lista JSON: {json_path}")
 
 
 @app.command("risk-matrix")
