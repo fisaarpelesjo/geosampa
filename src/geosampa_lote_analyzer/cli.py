@@ -11,6 +11,7 @@ from geosampa_lote_analyzer.services.document_reference_service import DocumentR
 from geosampa_lote_analyzer.services.dossier_service import DossierService
 from geosampa_lote_analyzer.services.intersection_service import IntersectionService
 from geosampa_lote_analyzer.services.layer_discovery_service import LayerDiscoveryService
+from geosampa_lote_analyzer.services.legal_validation_service import LegalValidationService
 from geosampa_lote_analyzer.services.lote_service import LoteService
 from geosampa_lote_analyzer.services.map_service import MapService
 from geosampa_lote_analyzer.services.report_service import ReportService
@@ -129,6 +130,20 @@ def validation_matrix(
     console.print(f"Itens de validação: {len(rows)}")
     console.print(f"Matriz CSV: {csv_path}")
     console.print(f"Matriz JSON: {json_path}")
+
+
+@app.command("legal-validation")
+def legal_validation(
+    document_references_path: Annotated[
+        Path, typer.Option()
+    ] = PROCESSED_DIR / "document_references.csv",
+) -> None:
+    rows, csv_path, json_path = LegalValidationService().generate(
+        document_references_path=document_references_path,
+    )
+    console.print(f"Tarefas de validação legal: {len(rows)}")
+    console.print(f"Tarefas CSV: {csv_path}")
+    console.print(f"Tarefas JSON: {json_path}")
 
 
 @app.command("intersect")
