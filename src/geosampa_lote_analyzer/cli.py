@@ -15,6 +15,7 @@ from geosampa_lote_analyzer.services.lote_service import LoteService
 from geosampa_lote_analyzer.services.map_service import MapService
 from geosampa_lote_analyzer.services.report_service import ReportService
 from geosampa_lote_analyzer.services.source_discovery_service import SourceDiscoveryService
+from geosampa_lote_analyzer.services.validation_matrix_service import ValidationMatrixService
 
 app = typer.Typer(help="Analisa lotes do GeoSampa via WFS.")
 console = Console()
@@ -108,6 +109,26 @@ def dossier(
     )
     console.print(f"Dossiê Markdown: {markdown_path}")
     console.print(f"Dossiê JSON: {json_path}")
+
+
+@app.command("validation-matrix")
+def validation_matrix(
+    intersections: Annotated[Path, typer.Option()] = INTERSECTIONS_CSV_PATH,
+    document_references_path: Annotated[
+        Path, typer.Option()
+    ] = PROCESSED_DIR / "document_references.csv",
+    official_sources_path: Annotated[
+        Path, typer.Option()
+    ] = PROCESSED_DIR / "official_sources_inventory.csv",
+) -> None:
+    rows, csv_path, json_path = ValidationMatrixService().generate(
+        intersections_path=intersections,
+        document_references_path=document_references_path,
+        official_sources_path=official_sources_path,
+    )
+    console.print(f"Itens de validação: {len(rows)}")
+    console.print(f"Matriz CSV: {csv_path}")
+    console.print(f"Matriz JSON: {json_path}")
 
 
 @app.command("intersect")
