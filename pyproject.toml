@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "geosampa-lote-analyzer"
+version = "0.1.0"
+description = "Ferramenta para analisar lotes do GeoSampa via WFS."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "folium>=0.16",
+  "geopandas>=0.14",
+  "lxml>=5",
+  "pandas>=2.2",
+  "pydantic>=2.7",
+  "python-dotenv>=1",
+  "requests>=2.31",
+  "rich>=13",
+  "shapely>=2",
+  "typer>=0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.10",
+  "pytest>=8",
+  "ruff>=0.5",
+  "types-requests>=2.31",
+]
+
+[project.scripts]
+geosampa-lote-analyzer = "geosampa_lote_analyzer.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/geosampa_lote_analyzer"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "integration: testes que consultam serviços externos",
+]
+

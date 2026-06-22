@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.env
+data/cache/
+data/raw/
+data/processed/
+data/reports/
+geosampa_lote_analyzer_codex_spec.md
