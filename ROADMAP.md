@@ -10,45 +10,28 @@ Este roadmap lista evoluções úteis para transformar o projeto em uma ferramen
 - Registrar fonte, camada, data de consulta e limitações de cada achado.
 - Preferir WFS, metadados e documentos oficiais a scraping de interface.
 - Fazer uma feature por commit, com título e descrição em português do Brasil, seguida de push.
+- Priorizar features que validam a hipótese de investigação em curso antes de features operacionais/usabilidade.
 
-## Fase 1 — Base Técnica Confiável
+## Concluído
 
-### feat(intersecoes): melhorar estratégia de consulta por BBOX
+- feat(intersecoes): consulta espacial com CRS/BBOX corrigidos.
+- feat(camadas): descoberta de camadas candidatas via WFS.
+- feat(fontes): inventário de fontes oficiais via CKAN.
+- feat(documentos): extração de referências legais das camadas.
+- feat(dossie): relatório investigativo consolidado.
+- feat(documentos): validação legal (tarefas e matriz de validação).
+- feat(ocupacao): cruzar com camadas de edificação e infraestrutura.
+- feat(documentos): busca legislação municipal por número (link manual).
 
-- Testar automaticamente variações de BBOX quando uma camada retorna vazio.
-- Registrar no CSV qual CRS/BBOX foi usado em cada consulta.
-- Diferenciar retorno vazio real de falha técnica ou incompatibilidade de CRS.
-- Adicionar coluna `bbox_crs` e `bbox_usado` em `intersections.csv`.
+## Fase 1 — Validação da Hipótese (prioridade máxima)
 
-### feat(camadas): classificar camadas por relevância
+A hipótese em investigação: o lote-alvo é área pública/protegida (manancial, parque, ZEIS sobrepostos, sem contribuinte cadastrado) e precisa confirmar se há ato legal válido (decreto/desapropriação) e se a ocupação real é compatível com isso.
 
-- Criar categorias como `DESAPROPRIACAO`, `AREA_PUBLICA`, `PARQUE`, `MANANCIAL`, `APP`, `ZEIS`, `HABITACAO`, `INFRAESTRUTURA` e `CADASTRO`.
-- Evitar depender apenas de keyword solta.
-- Adicionar peso de relevância para priorizar camadas críticas no relatório.
+### feat(ocupacao): comparar cadastro fiscal e ocupação aparente
 
-### feat(intersecoes): resumir atributos das feições intersectantes
-
-- Exportar CSV específico com atributos das feições intersectantes.
-- Incluir área individual de interseção por feição.
-- Incluir percentual de sobreposição por feição.
-- Preservar propriedades originais em JSON técnico.
-
-### feat(geometria): validar qualidade geométrica
-
-- Detectar geometria inválida, multipolígono, buracos e geometrias vazias.
-- Registrar CRS original e CRS métrico usado.
-- Calcular área, perímetro e centróide do lote.
-- Gerar alerta quando a geometria parecer incompatível com o CRS.
-
-## Fase 2 — Dossiê Técnico
-
-### feat(dossie): gerar relatório investigativo consolidado
-
-- Criar comando `dossie`.
-- Agrupar achados por categoria.
-- Destacar camadas críticas com interseção.
-- Separar evidência, interpretação técnica e confirmação pendente.
-- Gerar Markdown, JSON e CSVs auxiliares.
+- Criar seção de divergência cadastral.
+- Comparar lote sem contribuinte/porta/área construída com camadas auxiliares.
+- Registrar como indício técnico, não como prova dominial ou habitacional.
 
 ### feat(dossie): criar matriz de risco técnico
 
@@ -56,36 +39,6 @@ Este roadmap lista evoluções úteis para transformar o projeto em uma ferramen
 - Considerar área pública, DUP/DIS, parque proposto, manancial, APP e ZEIS.
 - Explicar que risco técnico não é conclusão jurídica.
 - Permitir ajustar pesos por configuração.
-
-### feat(dossie): registrar trilha de auditoria
-
-- Salvar data/hora da consulta.
-- Salvar endpoint, camada, parâmetros e hash do retorno.
-- Incluir versão do programa no relatório.
-- Registrar arquivos brutos usados para reproduzir o resultado.
-
-### feat(relatorio): melhorar linguagem e anexos
-
-- Padronizar frases cautelosas.
-- Adicionar seção “O que o dado indica”.
-- Adicionar seção “O que o dado não prova”.
-- Adicionar checklist de confirmação oficial.
-
-## Fase 3 — Validação Documental
-
-### feat(documentos): extrair referências legais das camadas
-
-- Detectar número de decreto, lei, processo, planta, matrícula e escritura nos atributos.
-- Criar inventário de referências documentais.
-- Gerar CSV `document_references.csv`.
-- Marcar documentos como `PENDENTE`, `LOCALIZADO`, `VALIDADO` ou `NAO_ENCONTRADO`.
-
-### feat(documentos): buscar legislação municipal
-
-- Criar cliente para consulta de legislação municipal quando houver endpoint ou página pública estável.
-- Buscar decretos e leis citados nas camadas.
-- Salvar metadados do documento encontrado.
-- Não assumir validade sem conferir número, ano e ementa.
 
 ### feat(documentos): associar plantas e croquis
 
@@ -101,20 +54,52 @@ Este roadmap lista evoluções úteis para transformar o projeto em uma ferramen
 - Indexar número de documento, data, órgão e termos relevantes.
 - Gerar resumo cauteloso com citação de páginas.
 
-## Fase 4 — Ocupação Real e Infraestrutura
+## Fase 2 — Confiabilidade da Evidência
 
-### feat(ocupacao): cruzar com camadas de edificação e infraestrutura
+Sustenta a hipótese com dados tecnicamente confiáveis e rastreáveis.
 
-- Descobrir camadas de edificação, vias, iluminação, drenagem, serviços públicos e equipamentos.
-- Verificar se há indícios indiretos de ocupação real.
-- Diferenciar ponto, linha e polígono no cálculo de interseção.
-- Evitar inferir presença de moradores sem fonte adequada.
+### feat(geometria): validar qualidade geométrica
 
-### feat(ocupacao): comparar cadastro fiscal e ocupação aparente
+- Detectar geometria inválida, multipolígono, buracos e geometrias vazias.
+- Registrar CRS original e CRS métrico usado.
+- Calcular área, perímetro e centróide do lote.
+- Gerar alerta quando a geometria parecer incompatível com o CRS.
 
-- Criar seção de divergência cadastral.
-- Comparar lote sem contribuinte/porta/área construída com camadas auxiliares.
-- Registrar como indício técnico, não como prova dominial ou habitacional.
+### feat(intersecoes): melhorar estratégia de consulta por BBOX
+
+- Testar automaticamente variações de BBOX quando uma camada retorna vazio.
+- Registrar no CSV qual CRS/BBOX foi usado em cada consulta.
+- Diferenciar retorno vazio real de falha técnica ou incompatibilidade de CRS.
+- Adicionar coluna `bbox_crs` e `bbox_usado` em `intersections.csv`.
+
+### feat(camadas): classificar camadas por relevância
+
+- Criar categorias como `DESAPROPRIACAO`, `AREA_PUBLICA`, `PARQUE`, `MANANCIAL`, `APP`, `ZEIS`, `HABITACAO`, `INFRAESTRUTURA` e `CADASTRO`.
+- Evitar depender apenas de keyword solta.
+- Adicionar peso de relevância para priorizar camadas críticas no relatório.
+
+### feat(dossie): registrar trilha de auditoria
+
+- Salvar data/hora da consulta.
+- Salvar endpoint, camada, parâmetros e hash do retorno.
+- Incluir versão do programa no relatório.
+- Registrar arquivos brutos usados para reproduzir o resultado.
+
+## Fase 3 — Complementar (depois da hipótese validada)
+
+### feat(intersecoes): resumir atributos das feições intersectantes
+
+- Exportar CSV específico com atributos das feições intersectantes.
+- Incluir área individual de interseção por feição.
+- Incluir percentual de sobreposição por feição.
+- Preservar propriedades originais em JSON técnico.
+
+### feat(relatorio): melhorar linguagem e anexos
+
+- Padronizar frases cautelosas.
+- Adicionar seção "O que o dado indica".
+- Adicionar seção "O que o dado não prova".
+- Adicionar checklist de confirmação oficial.
 
 ### feat(imagens): integrar ortofotos ou imagens de referência
 
@@ -122,8 +107,6 @@ Este roadmap lista evoluções úteis para transformar o projeto em uma ferramen
 - Permitir anexar imagem local de referência.
 - Não versionar imagens sensíveis.
 - Registrar data/fonte da imagem quando conhecida.
-
-## Fase 5 — Interface e Usabilidade
 
 ### feat(interface): criar painel web local
 
@@ -154,8 +137,6 @@ Este roadmap lista evoluções úteis para transformar o projeto em uma ferramen
 - Adicionar `--forcar-cache-refresh`.
 - Adicionar `--saida` para diretório customizado.
 
-## Fase 6 — Qualidade, Testes e Operação
-
 ### test(integracao): criar testes reais opcionais de WFS
 
 - Marcar testes com `pytest.mark.integration`.
@@ -183,8 +164,6 @@ Este roadmap lista evoluções úteis para transformar o projeto em uma ferramen
 - Criar script para procurar endereços, SQLs específicos e nomes de arquivos gerados.
 - Rodar antes de commit.
 - Manter lista de padrões proibidos configurável.
-
-## Fase 7 — Pacote de Entrega
 
 ### feat(exportacao): empacotar resultados
 
