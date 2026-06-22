@@ -5,7 +5,7 @@ from typing import Any
 
 from geosampa_lote_analyzer.domain.constants import PROCESSED_DIR, REPORTS_DIR
 from geosampa_lote_analyzer.utils.files import write_json
-from geosampa_lote_analyzer.utils.text import normalize_text
+from geosampa_lote_analyzer.utils.text import keyword_in_text, normalize_text
 
 CATEGORY_RULES = {
     "Cadastro municipal": ["lote_cidadao"],
@@ -21,6 +21,9 @@ CATEGORY_RULES = {
         "vulnerabilidade",
         "servico",
         "logradouro",
+        "edificacao",
+        "arruamento",
+        "equipamento",
     ],
 }
 
@@ -86,7 +89,7 @@ class DossierService:
             )
             matched_category = None
             for category, rules in CATEGORY_RULES.items():
-                if any(normalize_text(rule) in text for rule in rules):
+                if any(keyword_in_text(rule, text) for rule in rules):
                     matched_category = category
                     break
             categorized[matched_category or "Outras interseções"].append(row)

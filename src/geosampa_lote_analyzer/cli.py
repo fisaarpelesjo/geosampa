@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Annotated
 
@@ -20,6 +21,7 @@ from geosampa_lote_analyzer.services.lote_service import LoteService
 from geosampa_lote_analyzer.services.map_service import MapService
 from geosampa_lote_analyzer.services.occupation_service import OccupationService
 from geosampa_lote_analyzer.services.report_service import ReportService
+from geosampa_lote_analyzer.services.risk_matrix_service import RiskMatrixService
 from geosampa_lote_analyzer.services.source_discovery_service import SourceDiscoveryService
 from geosampa_lote_analyzer.services.validation_matrix_service import ValidationMatrixService
 
@@ -149,6 +151,29 @@ def legal_validation(
     console.print(f"Tarefas de validação legal: {len(rows)}")
     console.print(f"Tarefas CSV: {csv_path}")
     console.print(f"Tarefas JSON: {json_path}")
+
+
+@app.command("risk-matrix")
+def risk_matrix(
+    intersections: Annotated[Path, typer.Option()] = INTERSECTIONS_CSV_PATH,
+    weights_json: Annotated[
+        Path | None,
+        typer.Option(help="JSON com pesos por categoria para sobrescrever os padrões."),
+    ] = None,
+) -> None:
+    weights = json.loads(weights_json.read_text(encoding="utf-8")) if weights_json else None
+    findings, csv_path, json_path = RiskMatrixService().generate(
+        intersections_path=intersections,
+        weights=weights,
+    )
+    by_level = {level: 0 for level in ("CRITICO", "ALTO", "MEDIO", "BAIXO")}
+    for finding in findings:
+        by_level[finding.risk_level] += 1
+    console.print(f"Achados na matriz de risco: {len(findings)}")
+    for level, count in by_level.items():
+        console.print(f"{level}: {count}")
+    console.print(f"Matriz CSV: {csv_path}")
+    console.print(f"Matriz JSON: {json_path}")
 
 
 @app.command("cadastral-divergence")
