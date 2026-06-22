@@ -8,6 +8,7 @@ from geosampa_lote_analyzer.domain.constants import PROCESSED_DIR
 from geosampa_lote_analyzer.domain.keywords import DEFAULT_LAYER_KEYWORDS
 from geosampa_lote_analyzer.logging_config import configure_logging
 from geosampa_lote_analyzer.services.document_reference_service import DocumentReferenceService
+from geosampa_lote_analyzer.services.dossier_service import DossierService
 from geosampa_lote_analyzer.services.intersection_service import IntersectionService
 from geosampa_lote_analyzer.services.layer_discovery_service import LayerDiscoveryService
 from geosampa_lote_analyzer.services.lote_service import LoteService
@@ -86,6 +87,27 @@ def document_references(
     console.print(f"Referências documentais: {len(references)}")
     console.print(f"Inventário CSV: {csv_path}")
     console.print(f"Inventário JSON: {json_path}")
+
+
+@app.command("dossie")
+def dossier(
+    target_properties: Annotated[Path, typer.Option()] = TARGET_PROPERTIES_PATH,
+    intersections: Annotated[Path, typer.Option()] = INTERSECTIONS_CSV_PATH,
+    document_references_path: Annotated[
+        Path, typer.Option()
+    ] = PROCESSED_DIR / "document_references.csv",
+    official_sources_path: Annotated[
+        Path, typer.Option()
+    ] = PROCESSED_DIR / "official_sources_inventory.csv",
+) -> None:
+    markdown_path, json_path = DossierService().generate(
+        target_properties_path=target_properties,
+        intersections_path=intersections,
+        document_references_path=document_references_path,
+        official_sources_path=official_sources_path,
+    )
+    console.print(f"Dossiê Markdown: {markdown_path}")
+    console.print(f"Dossiê JSON: {json_path}")
 
 
 @app.command("intersect")
