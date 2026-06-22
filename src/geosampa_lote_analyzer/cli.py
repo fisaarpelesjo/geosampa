@@ -23,6 +23,7 @@ from geosampa_lote_analyzer.services.legislation_lookup_service import Legislati
 from geosampa_lote_analyzer.services.lote_service import LoteService
 from geosampa_lote_analyzer.services.map_service import MapService
 from geosampa_lote_analyzer.services.occupation_service import OccupationService
+from geosampa_lote_analyzer.services.pdf_document_service import PdfDocumentService
 from geosampa_lote_analyzer.services.report_service import ReportService
 from geosampa_lote_analyzer.services.risk_matrix_service import RiskMatrixService
 from geosampa_lote_analyzer.services.source_discovery_service import SourceDiscoveryService
@@ -154,6 +155,16 @@ def legal_validation(
     console.print(f"Tarefas de validação legal: {len(rows)}")
     console.print(f"Tarefas CSV: {csv_path}")
     console.print(f"Tarefas JSON: {json_path}")
+
+
+@app.command("pdf-documents")
+def pdf_documents(
+    pdf_dir: Annotated[Path, typer.Option()] = ATTACHMENTS_DIR,
+) -> None:
+    findings, csv_path, json_path = PdfDocumentService().generate(pdf_dir=pdf_dir)
+    console.print(f"Referências extraídas de PDFs: {len(findings)}")
+    console.print(f"Índice CSV: {csv_path}")
+    console.print(f"Índice JSON: {json_path}")
 
 
 @app.command("plantas-croquis")
