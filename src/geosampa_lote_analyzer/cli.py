@@ -14,6 +14,7 @@ from geosampa_lote_analyzer.services.layer_discovery_service import LayerDiscove
 from geosampa_lote_analyzer.services.legal_validation_service import LegalValidationService
 from geosampa_lote_analyzer.services.lote_service import LoteService
 from geosampa_lote_analyzer.services.map_service import MapService
+from geosampa_lote_analyzer.services.occupation_service import OccupationService
 from geosampa_lote_analyzer.services.report_service import ReportService
 from geosampa_lote_analyzer.services.source_discovery_service import SourceDiscoveryService
 from geosampa_lote_analyzer.services.validation_matrix_service import ValidationMatrixService
@@ -144,6 +145,20 @@ def legal_validation(
     console.print(f"Tarefas de validação legal: {len(rows)}")
     console.print(f"Tarefas CSV: {csv_path}")
     console.print(f"Tarefas JSON: {json_path}")
+
+
+@app.command("occupation")
+def occupation(
+    intersections: Annotated[Path, typer.Option()] = INTERSECTIONS_CSV_PATH,
+    intersections_geojson: Annotated[Path, typer.Option()] = INTERSECTIONS_GEOJSON_PATH,
+) -> None:
+    findings, csv_path, json_path = OccupationService().generate(
+        intersections_path=intersections,
+        intersections_geojson_path=intersections_geojson,
+    )
+    console.print(f"Indícios de ocupação/infraestrutura: {len(findings)}")
+    console.print(f"Indicadores CSV: {csv_path}")
+    console.print(f"Indicadores JSON: {json_path}")
 
 
 @app.command("intersect")
