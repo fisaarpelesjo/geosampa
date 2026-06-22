@@ -8,6 +8,7 @@ from geosampa_lote_analyzer.clients.geosampa_wfs import GeoSampaWfsClient
 from geosampa_lote_analyzer.config import settings
 from geosampa_lote_analyzer.domain.constants import PROCESSED_DIR, RAW_DIR
 from geosampa_lote_analyzer.utils.files import ensure_parent, safe_filename, write_json
+from geosampa_lote_analyzer.utils.geo import geojson_crs_name, normalize_crs
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,9 @@ class IntersectionService:
         target = gpd.read_file(target_path)
         if target.empty:
             raise RuntimeError("GeoJSON do lote alvo está vazio.")
+        if target.crs is None:
+            target = target.set_crs(settings.output_crs)
         target = self._valid(target)
-        bbox = tuple(float(value) for value in target.to_crs(settings.output_crs).total_bounds)
         target_metric = self._valid(target.to_crs(settings.metric_crs))
         target_geom = target_metric.geometry.iloc[0]
         target_area = float(target_geom.area)
@@ -38,7 +40,7 @@ class IntersectionService:
         rows: list[dict[str, Any]] = []
         intersection_features: list[dict[str, Any]] = []
         for layer in layers:
-            row = self._process_layer(layer, bbox, target_metric, target_geom, target_area, gpd)
+            row = self._process_layer(layer, target, target_metric, target_geom, target_area, gpd)
             rows.append(row)
             if row.get("_features"):
                 intersection_features.extend(row.pop("_features"))
@@ -55,7 +57,7 @@ class IntersectionService:
     def _process_layer(
         self,
         layer: dict[str, str],
-        bbox: tuple[float, float, float, float],
+        target: Any,
         target_metric: Any,
         target_geom: Any,
         target_area: float,
@@ -75,9 +77,12 @@ class IntersectionService:
             "error_message": "",
         }
         try:
+            layer_crs = normalize_crs(layer.get("default_crs")) or str(target.crs)
+            bbox = self._target_bbox_for_crs(target, layer_crs)
             data = self.client.get_feature(
                 type_name,
                 bbox=bbox,
+                bbox_crs=layer_crs,
                 max_features=settings.max_features_default,
             )
             raw_path = RAW_DIR / "candidate_layers_raw" / f"{safe_filename(type_name)}.geojson"
@@ -87,7 +92,10 @@ class IntersectionService:
             if not features:
                 return base_row
 
-            gdf = gpd.GeoDataFrame.from_features(features, crs=settings.output_crs)
+            gdf = gpd.read_file(raw_path)
+            detected_crs = normalize_crs(geojson_crs_name(data)) or layer_crs
+            if gdf.crs is None and detected_crs:
+                gdf = gdf.set_crs(detected_crs)
             if gdf.empty or gdf.geometry.is_empty.all():
                 return base_row
             gdf = self._valid(gdf.to_crs(settings.metric_crs))
@@ -111,13 +119,13 @@ class IntersectionService:
                     "intersection_ratio": area / target_area if target_area else 0.0,
                     "status": status,
                     "_features": json.loads(
-                        gpd.GeoDataFrame(
-                            intersects.drop(columns="geometry"),
-                            geometry=intersections,
-                            crs=settings.metric_crs,
-                        )
-                        .to_crs(settings.output_crs)
-                        .to_json()
+                        self._json_safe_gdf(
+                            gpd.GeoDataFrame(
+                                intersects.drop(columns="geometry"),
+                                geometry=intersections,
+                                crs=settings.metric_crs,
+                            ).to_crs(settings.output_crs)
+                        ).to_json()
                     ).get("features", []),
                 }
             )
@@ -128,6 +136,19 @@ class IntersectionService:
             logger.warning("Falha ao processar camada %s: %s", type_name, exc)
             base_row.update({"status": "ERROR", "error_message": str(exc)})
             return base_row
+
+    def _target_bbox_for_crs(self, target: Any, crs: str) -> tuple[float, float, float, float]:
+        projected = target.to_crs(crs)
+        return tuple(float(value) for value in projected.total_bounds)
+
+    def _json_safe_gdf(self, gdf: Any) -> Any:
+        safe = gdf.copy()
+        for column in safe.columns:
+            if column == "geometry":
+                continue
+            if str(safe[column].dtype).startswith("datetime"):
+                safe[column] = safe[column].astype(str)
+        return safe
 
     def _valid(self, gdf: Any) -> Any:
         try:

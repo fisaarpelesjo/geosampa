@@ -24,6 +24,7 @@ class GeoSampaWfsClient:
         type_name: str,
         cql_filter: str | None = None,
         bbox: tuple[float, float, float, float] | None = None,
+        bbox_crs: str | None = None,
         max_features: int | None = None,
         output_format: str = "application/json",
     ) -> dict[str, Any]:
@@ -37,7 +38,10 @@ class GeoSampaWfsClient:
         if cql_filter:
             params["CQL_FILTER"] = cql_filter
         if bbox:
-            params["bbox"] = ",".join(str(value) for value in bbox)
+            bbox_parts = [str(value) for value in bbox]
+            if bbox_crs:
+                bbox_parts.append(bbox_crs)
+            params["bbox"] = ",".join(bbox_parts)
         if max_features:
             params["maxFeatures"] = max_features
 
@@ -95,4 +99,3 @@ class GeoSampaWfsClient:
         payload = json.dumps({"url": url, "params": params}, sort_keys=True, ensure_ascii=False)
         digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
         return CACHE_DIR / f"{digest}{suffix}"
-
