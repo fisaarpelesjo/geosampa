@@ -5,6 +5,10 @@ from pathlib import Path
 
 @dataclass
 class Settings:
+    dados_abertos_api_url: str = os.getenv(
+        "GEOSAMPA_DADOS_ABERTOS_API_URL",
+        "https://dados.prefeitura.sp.gov.br/api/3/action",
+    )
     wfs_base_url: str = os.getenv(
         "GEOSAMPA_WFS_BASE_URL",
         "https://wfs.geosampa.prefeitura.sp.gov.br/geoserver/geoportal/ows",

@@ -12,6 +12,7 @@ from geosampa_lote_analyzer.services.layer_discovery_service import LayerDiscove
 from geosampa_lote_analyzer.services.lote_service import LoteService
 from geosampa_lote_analyzer.services.map_service import MapService
 from geosampa_lote_analyzer.services.report_service import ReportService
+from geosampa_lote_analyzer.services.source_discovery_service import SourceDiscoveryService
 
 app = typer.Typer(help="Analisa lotes do GeoSampa via WFS.")
 console = Console()
@@ -52,6 +53,24 @@ def discover_layers(
     console.print(f"Total de camadas no WFS: {len(layers)}")
     console.print(f"Camadas candidatas: {sum(layer.is_candidate for layer in layers)}")
     console.print(f"Inventário salvo em: {path}")
+
+
+@app.command("discover-sources")
+def discover_sources(
+    keywords: str = typer.Option(
+        "",
+        help="Lista de termos separados por vírgula. Se vazio, usa termos padrão.",
+    ),
+    rows_per_keyword: int = typer.Option(5, min=1, max=50),
+) -> None:
+    parsed_keywords = [keyword.strip() for keyword in keywords.split(",") if keyword.strip()]
+    sources, csv_path, json_path = SourceDiscoveryService().discover(
+        parsed_keywords or None,
+        rows_per_keyword=rows_per_keyword,
+    )
+    console.print(f"Fontes inventariadas: {len(sources)}")
+    console.print(f"Inventário CSV: {csv_path}")
+    console.print(f"Inventário JSON: {json_path}")
 
 
 @app.command("intersect")
