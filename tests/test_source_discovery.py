@@ -10,8 +10,8 @@ class FakeCkanClient:
                     {
                         "id": "dataset-1",
                         "name": "dataset-teste",
-                        "title": "Dataset de Teste",
-                        "notes": "Descrição do dataset.",
+                        "title": "Dataset de Teste de Habitação",
+                        "notes": "Descrição sobre parque linear, manancial e habitação.",
                         "resources": [
                             {"format": "CSV"},
                             {"format": "GeoJSON"},
@@ -37,7 +37,11 @@ def test_source_discovery_adds_static_and_ckan_sources(tmp_path) -> None:
     assert csv_path.exists()
     assert json_path.exists()
     assert any(source.source_name == "GeoSampa WFS" for source in sources)
-    assert any(source.title == "Dataset de Teste" for source in sources)
+    dataset = next(source for source in sources if source.title == "Dataset de Teste de Habitação")
+    assert "HABITACAO" in dataset.validation_categories
+    assert "PARQUE" in dataset.validation_categories
+    assert "MANANCIAL_APP" in dataset.validation_categories
+    assert dataset.relevance_score > 0
 
 
 def test_source_discovery_deduplicates_ckan_results(tmp_path) -> None:
@@ -49,5 +53,5 @@ def test_source_discovery_deduplicates_ckan_results(tmp_path) -> None:
         json_path=tmp_path / "sources.json",
     )
 
-    dataset_count = sum(source.title == "Dataset de Teste" for source in sources)
+    dataset_count = sum(source.title == "Dataset de Teste de Habitação" for source in sources)
     assert dataset_count == 1

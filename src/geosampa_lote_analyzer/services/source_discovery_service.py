@@ -4,9 +4,13 @@ from typing import Any
 
 from geosampa_lote_analyzer.clients.ckan import CkanClient
 from geosampa_lote_analyzer.domain.constants import PROCESSED_DIR
-from geosampa_lote_analyzer.domain.source_keywords import DEFAULT_SOURCE_KEYWORDS
+from geosampa_lote_analyzer.domain.source_keywords import (
+    DEFAULT_SOURCE_KEYWORDS,
+    SOURCE_CATEGORY_KEYWORDS,
+)
 from geosampa_lote_analyzer.domain.sources import OfficialSource
 from geosampa_lote_analyzer.utils.files import ensure_parent, write_json
+from geosampa_lote_analyzer.utils.text import normalize_text
 
 
 class SourceDiscoveryService:
@@ -47,6 +51,15 @@ class SourceDiscoveryService:
                 url="https://wfs.geosampa.prefeitura.sp.gov.br/geoserver/ows",
                 status="API",
                 notes="Fonte vetorial principal para camadas geoespaciais.",
+                validation_categories=[
+                    "DESAPROPRIACAO",
+                    "AREA_PUBLICA",
+                    "HABITACAO",
+                    "PARQUE",
+                    "MANANCIAL_APP",
+                    "ZONEAMENTO",
+                ],
+                relevance_score=6,
             ),
             OfficialSource(
                 source_type="wms",
@@ -55,6 +68,8 @@ class SourceDiscoveryService:
                 url="https://wfs.geosampa.prefeitura.sp.gov.br/geoserver/ows",
                 status="API",
                 notes="Fonte cartográfica para visualização e conferência.",
+                validation_categories=["PARQUE", "MANANCIAL_APP", "ZONEAMENTO"],
+                relevance_score=3,
             ),
             OfficialSource(
                 source_type="portal",
@@ -63,6 +78,8 @@ class SourceDiscoveryService:
                 url="https://legislacao.prefeitura.sp.gov.br/",
                 status="MANUAL",
                 notes="Útil para validar leis, decretos e dispositivos legais.",
+                validation_categories=["DOCUMENTO_OFICIAL", "DESAPROPRIACAO"],
+                relevance_score=5,
             ),
             OfficialSource(
                 source_type="portal",
@@ -71,6 +88,13 @@ class SourceDiscoveryService:
                 url="https://processos.prefeitura.sp.gov.br/",
                 status="MANUAL",
                 notes="Útil para consultar processos por número e andamento.",
+                validation_categories=[
+                    "DOCUMENTO_OFICIAL",
+                    "DESAPROPRIACAO",
+                    "HABITACAO",
+                    "AREA_PUBLICA",
+                ],
+                relevance_score=5,
             ),
             OfficialSource(
                 source_type="portal",
@@ -79,6 +103,8 @@ class SourceDiscoveryService:
                 url="https://diariooficial.prefeitura.sp.gov.br/",
                 status="MANUAL",
                 notes="Útil para confirmar publicações oficiais.",
+                validation_categories=["DOCUMENTO_OFICIAL", "DESAPROPRIACAO"],
+                relevance_score=5,
             ),
         ]
 
@@ -92,6 +118,16 @@ class SourceDiscoveryService:
             }
         )
         organization = dataset.get("organization") or {}
+        searchable_text = " ".join(
+            [
+                str(dataset.get("title") or ""),
+                str(dataset.get("name") or ""),
+                str(dataset.get("notes") or ""),
+                str(organization.get("title") or ""),
+                " ".join(formats),
+            ]
+        )
+        categories = self._validation_categories(searchable_text)
         return OfficialSource(
             source_type="ckan_dataset",
             source_name="Portal de Dados Abertos",
@@ -101,6 +137,8 @@ class SourceDiscoveryService:
             description=dataset.get("notes"),
             organization=organization.get("title") or organization.get("name"),
             resource_formats=formats,
+            validation_categories=categories,
+            relevance_score=self._relevance_score(categories, formats),
             resource_count=len(resources),
             score=dataset.get("score"),
             status="API",
@@ -111,6 +149,28 @@ class SourceDiscoveryService:
                 "metadata_modified": dataset.get("metadata_modified"),
             },
         )
+
+    def _validation_categories(self, text: str) -> list[str]:
+        normalized_text = normalize_text(text)
+        categories: list[str] = []
+        for category, keywords in SOURCE_CATEGORY_KEYWORDS.items():
+            if any(normalize_text(keyword) in normalized_text for keyword in keywords):
+                categories.append(category)
+        return categories
+
+    def _relevance_score(self, categories: list[str], formats: list[str]) -> int:
+        score = len(categories)
+        geospatial_formats = {"GEOJSON", "GPKG", "KML", "SHP", "ZIP"}
+        tabular_formats = {"CSV", "XLS", "XLSX", "ODS"}
+        if geospatial_formats.intersection(formats):
+            score += 3
+        if tabular_formats.intersection(formats):
+            score += 1
+        if "DOCUMENTO_OFICIAL" in categories:
+            score += 2
+        if "DESAPROPRIACAO" in categories:
+            score += 2
+        return score
 
     def _source_key(self, source: OfficialSource) -> tuple[str, str, str]:
         return source.source_type, source.source_name, source.title
@@ -126,6 +186,8 @@ class SourceDiscoveryService:
             "description",
             "organization",
             "resource_formats",
+            "validation_categories",
+            "relevance_score",
             "resource_count",
             "score",
             "status",
@@ -137,5 +199,5 @@ class SourceDiscoveryService:
             for source in sources:
                 row = source.model_dump()
                 row["resource_formats"] = ",".join(source.resource_formats)
+                row["validation_categories"] = ",".join(source.validation_categories)
                 writer.writerow({column: row.get(column, "") for column in columns})
-

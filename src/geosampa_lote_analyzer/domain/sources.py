@@ -12,6 +12,8 @@ class OfficialSource:
     description: str | None = None
     organization: str | None = None
     resource_formats: list[str] = field(default_factory=list)
+    validation_categories: list[str] = field(default_factory=list)
+    relevance_score: int = 0
     resource_count: int = 0
     score: float | None = None
     status: str = "LOCALIZADO"
@@ -20,4 +22,3 @@ class OfficialSource:
 
     def model_dump(self) -> dict[str, Any]:
         return asdict(self)
-
