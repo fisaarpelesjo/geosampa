@@ -7,6 +7,9 @@ from rich.console import Console
 from geosampa_lote_analyzer.domain.constants import PROCESSED_DIR
 from geosampa_lote_analyzer.domain.keywords import DEFAULT_LAYER_KEYWORDS
 from geosampa_lote_analyzer.logging_config import configure_logging
+from geosampa_lote_analyzer.services.cadastral_divergence_service import (
+    CadastralDivergenceService,
+)
 from geosampa_lote_analyzer.services.document_reference_service import DocumentReferenceService
 from geosampa_lote_analyzer.services.dossier_service import DossierService
 from geosampa_lote_analyzer.services.intersection_service import IntersectionService
@@ -146,6 +149,24 @@ def legal_validation(
     console.print(f"Tarefas de validação legal: {len(rows)}")
     console.print(f"Tarefas CSV: {csv_path}")
     console.print(f"Tarefas JSON: {json_path}")
+
+
+@app.command("cadastral-divergence")
+def cadastral_divergence(
+    target_properties: Annotated[Path, typer.Option()] = TARGET_PROPERTIES_PATH,
+    occupation_indicators_path: Annotated[
+        Path, typer.Option()
+    ] = PROCESSED_DIR / "occupation_indicators.csv",
+) -> None:
+    divergences, csv_path, json_path = CadastralDivergenceService().generate(
+        target_properties_path=target_properties,
+        occupation_indicators_path=occupation_indicators_path,
+    )
+    flagged = sum(divergence.divergencia for divergence in divergences)
+    console.print(f"Comparações cadastro x ocupação: {len(divergences)}")
+    console.print(f"Divergências sinalizadas: {flagged}")
+    console.print(f"Divergências CSV: {csv_path}")
+    console.print(f"Divergências JSON: {json_path}")
 
 
 @app.command("legislation-lookup")
