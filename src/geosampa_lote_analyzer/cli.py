@@ -5,7 +5,7 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
-from geosampa_lote_analyzer.domain.constants import ATTACHMENTS_DIR, PROCESSED_DIR
+from geosampa_lote_analyzer.domain.constants import ATTACHMENTS_DIR, PROCESSED_DIR, REPORTS_DIR
 from geosampa_lote_analyzer.domain.keywords import DEFAULT_LAYER_KEYWORDS
 from geosampa_lote_analyzer.logging_config import configure_logging
 from geosampa_lote_analyzer.services.cadastral_divergence_service import (
@@ -334,3 +334,87 @@ def run_all(
     console.print(f"Relatório JSON: {json_path}")
     if map_path:
         console.print(f"Mapa HTML: {map_path}")
+
+
+@app.command("investigar")
+def investigar(
+    setor: str = typer.Option(...),
+    quadra: str = typer.Option(...),
+    lote: str = typer.Option(...),
+) -> None:
+    info, raw_path, processed_path = LoteService().fetch_lote(setor, quadra, lote)
+    props_path = PROCESSED_DIR / f"target_lote_{setor}_{quadra}_{lote}_properties.json"
+    report_base = f"{setor}_{quadra}_{lote}"
+
+    layers, layers_path = LayerDiscoveryService().discover()
+    csv_path, geojson_path = IntersectionService().intersect(processed_path, layers_path)
+    _sources, sources_csv, _sources_json = SourceDiscoveryService().discover()
+    references, references_csv, _references_json = DocumentReferenceService().generate(
+        intersections_path=geojson_path,
+        target_properties_path=props_path,
+    )
+    dossier_md, _dossier_json = DossierService().generate(
+        target_properties_path=props_path,
+        intersections_path=csv_path,
+        document_references_path=references_csv,
+        official_sources_path=sources_csv,
+        markdown_path=REPORTS_DIR / f"dossie_{report_base}.md",
+        json_path=REPORTS_DIR / f"dossie_{report_base}.json",
+    )
+    ValidationMatrixService().generate(
+        intersections_path=csv_path,
+        document_references_path=references_csv,
+        official_sources_path=sources_csv,
+    )
+    LegalValidationService().generate(document_references_path=references_csv)
+    _occupation, occupation_csv, _occupation_json = OccupationService().generate(
+        intersections_path=csv_path,
+        intersections_geojson_path=geojson_path,
+    )
+    divergences, divergence_csv, _divergence_json = CadastralDivergenceService().generate(
+        target_properties_path=props_path,
+        occupation_indicators_path=occupation_csv,
+    )
+    risks, risk_csv, _risk_json = RiskMatrixService().generate(intersections_path=csv_path)
+    drawings, drawings_csv, _drawings_json = DrawingAssociationService().generate(
+        document_references_path=references_csv,
+    )
+    legislation, legislation_csv, _legislation_json = LegislationLookupService().generate(
+        document_references_path=references_csv,
+    )
+    pdfs, pdfs_csv, _pdfs_json = PdfDocumentService().generate()
+
+    try:
+        map_path = MapService().generate(
+            processed_path,
+            geojson_path,
+            output_path=REPORTS_DIR / f"mapa_{report_base}.html",
+        )
+    except Exception as exc:
+        map_path = None
+        console.print(f"Mapa HTML não foi gerado: {exc}")
+
+    summary_path = SummaryService().generate(
+        target_properties_path=props_path,
+        risk_matrix_path=risk_csv,
+        cadastral_divergence_path=divergence_csv,
+        drawing_requests_path=drawings_csv,
+        legislation_lookup_path=legislation_csv,
+        pdf_documents_path=pdfs_csv,
+        output_path=REPORTS_DIR / f"resumo_{report_base}.md",
+    )
+
+    console.print(f"SQL base: {info.sql_base or ''}")
+    console.print(f"Arquivo bruto: {raw_path}")
+    console.print(f"Camadas candidatas: {sum(layer.is_candidate for layer in layers)}")
+    console.print(f"Referências documentais: {len(references)}")
+    alto_critico = sum(1 for risk in risks if risk.risk_level in ("ALTO", "CRITICO"))
+    console.print(f"Achados ALTO/CRITICO na matriz de risco: {alto_critico}")
+    console.print(f"Divergências cadastro x ocupação: {sum(d.divergencia for d in divergences)}")
+    console.print(f"Plantas/croquis a solicitar: {len(drawings)}")
+    console.print(f"Referências legislativas a confirmar: {len(legislation)}")
+    console.print(f"Referências extraídas de PDFs locais: {len(pdfs)}")
+    if map_path:
+        console.print(f"Mapa HTML: {map_path}")
+    console.print(f"Dossiê: {dossier_md}")
+    console.print(f"Resumo investigativo: {summary_path}")

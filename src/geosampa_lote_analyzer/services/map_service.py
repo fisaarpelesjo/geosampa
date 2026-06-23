@@ -31,6 +31,7 @@ class MapService:
         if intersections_path.exists():
             intersections = gpd.read_file(intersections_path).to_crs("EPSG:4326")
             if not intersections.empty:
+                intersections = self._json_safe(intersections)
                 folium.GeoJson(
                     intersections.to_json(),
                     name="Interseções",
@@ -47,3 +48,12 @@ class MapService:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         mapa.save(str(output_path))
         return output_path
+
+    def _json_safe(self, gdf):
+        safe = gdf.copy()
+        for column in safe.columns:
+            if column == "geometry":
+                continue
+            if str(safe[column].dtype).startswith("datetime"):
+                safe[column] = safe[column].astype(str)
+        return safe
