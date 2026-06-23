@@ -27,6 +27,7 @@ from geosampa_lote_analyzer.services.pdf_document_service import PdfDocumentServ
 from geosampa_lote_analyzer.services.report_service import ReportService
 from geosampa_lote_analyzer.services.risk_matrix_service import RiskMatrixService
 from geosampa_lote_analyzer.services.source_discovery_service import SourceDiscoveryService
+from geosampa_lote_analyzer.services.summary_service import SummaryService
 from geosampa_lote_analyzer.services.validation_matrix_service import ValidationMatrixService
 
 app = typer.Typer(help="Analisa lotes do GeoSampa via WFS.")
@@ -184,6 +185,14 @@ def plantas_croquis(
     console.print(f"A solicitar: {len(requests) - found}")
     console.print(f"Lista CSV: {csv_path}")
     console.print(f"Lista JSON: {json_path}")
+
+
+@app.command("summary")
+def summary(
+    target_properties: Annotated[Path, typer.Option()] = TARGET_PROPERTIES_PATH,
+) -> None:
+    output_path = SummaryService().generate(target_properties_path=target_properties)
+    console.print(f"Resumo investigativo: {output_path}")
 
 
 @app.command("risk-matrix")
